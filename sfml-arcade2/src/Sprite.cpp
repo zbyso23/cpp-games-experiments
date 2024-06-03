@@ -44,30 +44,52 @@ void Sprite::update(float dt) {
     if (elapsedTime >= animationSpeed) {
         elapsedTime -= animationSpeed;
 
-        if (isPingPong && (currentFrame == 0 || currentFrame == animations[currentAnimation].size() - 1))
+        // Reverse direction if we reach the start or end of the animation
+        if (isPingPong && ((reverseDirection && currentFrame == 0) || (!reverseDirection && currentFrame == animations[currentAnimation].size() - 1))) {
             reverseDirection = !reverseDirection;
+        }
 
+        // Update the current frame index
         if (reverseDirection)
             currentFrame--;
         else
             currentFrame++;
 
-        if (currentFrame < 0 || currentFrame >= animations[currentAnimation].size()) {
-            if (isLooping)
-                currentFrame = reverseDirection ? animations[currentAnimation].size() - 1 : 0;
-            else
-                currentFrame = std::max(0, std::min(static_cast<int>(animations[currentAnimation].size()) - 1, currentFrame));
+        // Handle frame wrapping
+        if (currentFrame < 0) {
+            if (isLooping) {
+                currentFrame = 1; // Set to the second frame to avoid repeating the first frame
+                reverseDirection = false;
+            } else {
+                currentFrame = 0;
+            }
+        } else if (currentFrame >= animations[currentAnimation].size()) {
+            if (isLooping) {
+                currentFrame = animations[currentAnimation].size() - 2; // Set to the second-to-last frame to avoid repeating the last frame
+                reverseDirection = true;
+            } else {
+                currentFrame = animations[currentAnimation].size() - 1;
+            }
         }
 
+        // Retrieve the current frame
         const Frame& frame = animations[currentAnimation][currentFrame];
-        std::cout << "Row x Cell: [" << frame.col << ", " << frame.row << "]" << std::endl;
 
+        // Debug output for the current frame
+        // std::cout << "Row x Cell: [" << frame.col << ", " << frame.row << "]" << std::endl;
+
+        // Set the texture rectangle for the sprite
         sf::IntRect rect(frame.col * cellSize.x, frame.row * cellSize.y, cellSize.x, cellSize.y);
         sprite.setTextureRect(rect);
+
+        // Set the scale of the sprite (for flipping)
         sprite.setScale(frame.flipped ? -1.0f : 1.0f, 1.0f);
+
+        // Set the prepared flag if it's not already set
         if (!prepared) prepared = true;
     }
 }
+
 
 void Sprite::draw(sf::RenderWindow& window) {
     if (!prepared) return;
