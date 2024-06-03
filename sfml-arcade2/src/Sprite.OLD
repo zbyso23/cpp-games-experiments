@@ -1,0 +1,273 @@
+#include "Sprite.h"
+
+void Sprite::loadTexture(const std::string& filename) {
+    texture.loadFromFile(filename);
+}
+
+void Sprite::addAnimation(const std::string& name, const std::vector<Frame>& frames) {
+    animations[name] = frames;
+}
+
+void Sprite::setAnimation(const std::string& name, float speed, bool loop, bool pingPong) {
+    currentAnimation = name;
+    animationSpeed = speed;
+    isLooping = loop;
+    isPingPong = pingPong;
+    currentFrame = 0;
+    elapsedTime = 0.0f;
+}
+
+void Sprite::setPosition(float x, float y) {
+    sprite.setPosition(x, y);
+}
+
+void Sprite::update(float dt) {
+    if (currentAnimation.empty() || animations.find(currentAnimation) == animations.end())
+        return;
+
+    elapsedTime += dt;
+
+    if (elapsedTime >= animationSpeed) {
+        elapsedTime -= animationSpeed;
+
+        if (isPingPong && (currentFrame == 0 || currentFrame == animations[currentAnimation].size() - 1))
+            reverseDirection = !reverseDirection;
+
+        if (reverseDirection)
+            currentFrame--;
+        else
+            currentFrame++;
+
+        if (currentFrame < 0 || currentFrame >= animations[currentAnimation].size()) {
+            if (isLooping)
+                currentFrame = reverseDirection ? animations[currentAnimation].size() - 1 : 0;
+            else
+                currentFrame = std::max(0, std::min(static_cast<int>(animations[currentAnimation].size()) - 1, currentFrame));
+        }
+
+        const Frame& frame = animations[currentAnimation][currentFrame];
+        sf::IntRect rect = frame.rect;
+        if (frame.doubleWidth)
+            rect.width *= 2;
+        if (frame.doubleHeight)
+            rect.height *= 2;
+        sprite.setTextureRect(rect);
+        sprite.setScale(frame.flipped ? -1.0f : 1.0f, 1.0f);
+    }
+}
+
+void Sprite::draw(sf::RenderWindow& window) {
+    window.draw(sprite);
+}
+
+
+
+
+
+
+
+
+
+#include <iostream>
+#include "Sprite.hpp"
+
+Sprite::Sprite(const std::string& textureFile, const sf::Vector2i& frameSize, const std::string& executablePath)
+    : frameSize(frameSize), currentFrame(0), animationSpeed(0.1f), isLooping(true), isPingPong(false), isForward(true)
+{
+    // Get the directory of the executable
+    std::string execDir = executablePath.substr(0, executablePath.find_last_of("/\\"));
+
+    // Construct the full path to the texture file
+    std::string textureFullPath = execDir + "/resources/" + textureFile;
+
+    if (!texture.loadFromFile(textureFullPath))
+    {
+        throw std::runtime_error("Failed to load texture: " + textureFullPath);
+    }
+
+    sprite.setTexture(texture);
+}
+
+void Sprite::addAnimation(const std::string& name, const std::vector<Frame>& frames)
+{
+    animations[name] = frames;
+    calculateAnimationOffsets(name);
+}
+
+void Sprite::setAnimation(const std::string& name, float speed, bool loop, bool pingPong)
+{
+    if (animations.find(name) != animations.end())
+    {
+        currentAnimation = name;
+        currentFrame = 0;
+        animationSpeed = speed;
+        isLooping = loop;
+        isPingPong = pingPong;
+        isForward = true;
+        updateSpriteTextureRect();
+    }
+}
+
+void Sprite::update()
+{
+    if (clock.getElapsedTime().asSeconds() > animationSpeed)
+    {
+        if (isForward)
+        {
+            currentFrame++;
+            if (currentFrame >= animations[currentAnimation].size())
+            {
+                if (isLooping)
+                {
+                    currentFrame = 0;
+                }
+                else if (isPingPong)
+                {
+                    currentFrame = animations[currentAnimation].size() - 2;
+                    isForward = false;
+                }
+                else
+                {
+                    currentFrame--;
+                }
+            }
+        }
+        else
+        {
+            currentFrame--;
+            if (currentFrame < 0)
+            {
+                if (isLooping)
+                {
+                    currentFrame = animations[currentAnimation].size() - 1;
+                }
+                else if (isPingPong)
+                {
+                    currentFrame = 1;
+                    isForward = true;
+                }
+                else
+                {
+                    currentFrame++;
+                }
+            }
+        }
+
+        updateSpriteTextureRect();
+        clock.restart();
+    }
+}
+
+void Sprite::draw(sf::RenderWindow& window)
+{
+    // std::cout << "Sprite::draw" << std::endl;
+    window.draw(sprite);
+}
+
+void Sprite::setPosition(float x, float y)
+{
+    std::cout << "Sprite::setPosition, coords: [" << x << ", " << y << "]" << std::endl;
+    sprite.setPosition(x, y);
+}
+
+void Sprite::setSpeed(float speed)
+{
+    animationSpeed = speed;
+}
+
+void Sprite::setLooping(bool loop)
+{
+    isLooping = loop;
+}
+
+void Sprite::setPingPong(bool pingPong)
+{
+    isPingPong = pingPong;
+}
+
+void Sprite::calculateAnimationOffsets(const std::string& animationName)
+{
+    const std::vector<Frame>& frames = animations[animationName];
+    AnimationOffsets offsets;
+
+    // Calculate cumulative offsets by considering animations before the current one
+    for (const auto& entry : animations)
+    {
+        if (entry.first == animationName)
+            break;
+
+        const std::vector<Frame>& frames = entry.second;
+        for (const Frame& frame : frames)
+        {
+            offsets.cumulativeX.push_back(offsets.cumulativeX.empty() ? frameSize.x * (frame.size.first ? 2 : 1) : offsets.cumulativeX.back());
+            offsets.cumulativeY.push_back(offsets.cumulativeY.empty() ? frameSize.y * (frame.size.second ? 2 : 1) : offsets.cumulativeY.back());
+        }
+    }
+
+    // Accumulate offsets for the current animation, using the last cumulative X and Y values if available
+    int lastCumulativeX = !offsets.cumulativeX.empty() ? offsets.cumulativeX.back() : 0;
+    int lastCumulativeY = !offsets.cumulativeY.empty() ? offsets.cumulativeY.back() : 0;
+    for (const Frame& frame : frames)
+    {
+        if (!offsets.cumulativeX.empty())
+        {
+            offsets.cumulativeX.push_back(lastCumulativeX);
+            offsets.cumulativeY.push_back(lastCumulativeY);
+
+            lastCumulativeX += frameSize.x * (frame.size.first ? 2 : 1);
+        }
+        else
+        {
+            offsets.cumulativeX.push_back(frameSize.x * (frame.size.first ? 2 : 1));
+            offsets.cumulativeY.push_back(frameSize.y * (frame.size.second ? 2 : 1));
+        }
+    }
+
+    animationOffsets[animationName] = offsets;
+}
+
+void Sprite::dumpAnimationOffsets()
+{
+    for (const auto& entry : animationOffsets)
+    {
+        const std::string& animationName = entry.first;
+        const AnimationOffsets& offsets = entry.second;
+
+        std::cout << "Animation: " << animationName << std::endl;
+        std::cout << "Cumulative X: ";
+        for (int x : offsets.cumulativeX)
+        {
+            std::cout << x << " ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "Cumulative Y: ";
+        for (int y : offsets.cumulativeY)
+        {
+            std::cout << y << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void Sprite::updateSpriteTextureRect()
+{
+    std::cout << "Sprite::updateSpriteTextureRect" << std::endl;
+    const Frame& frame = animations[currentAnimation][currentFrame];
+    const AnimationOffsets& offsets = animationOffsets[currentAnimation];
+
+    int x = offsets.cumulativeX[frame.col];
+    int y = offsets.cumulativeY[frame.row];
+
+    int width = frame.size.first ? frameSize.x * 2 : frameSize.x;
+    int height = frame.size.second ? frameSize.y * 2 : frameSize.y;
+    if (frame.reverse)
+    {
+        x += width; // Adjust x position to start from the right edge
+        width *= -1; // Reverse the width to flip horizontally
+    }
+    dumpAnimationOffsets();
+    std::cout << "Current animation: " << currentAnimation << ", frame: " << currentFrame << ". Coords: [" << x << ", " << y << "], size: [" << width << ", " << height << "]" << std::endl;
+    sprite.setTextureRect(sf::IntRect(x, y, width, height));
+    std::cout << "Sprite::updateSpriteTextureRect OK" << std::endl;
+}
