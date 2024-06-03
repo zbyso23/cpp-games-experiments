@@ -1,23 +1,20 @@
+#include <iostream>
 #include "Sprite.hpp"
 
 Sprite::Sprite(const std::string& textureFile, const sf::Vector2i& sheetSize, const std::string& executablePath)
 {
-    // Get the directory of the executable
     std::string execDir = executablePath.substr(0, executablePath.find_last_of("/\\"));
-
-    // Construct the full path to the texture file
     std::string textureFullPath = execDir + "/resources/" + textureFile;
-
     if (!texture.loadFromFile(textureFullPath))
     {
         throw std::runtime_error("Failed to load texture: " + textureFullPath);
     }
-
-    int width = sheetSize.x * 32;
-    int height = sheetSize.y * 32;
-    sprite.setTextureRect(sf::IntRect(0, 0, width, height));
-
+    textureSize = texture.getSize();
+    cellSize = sheetSize;
+    std::cout << "WxH: [" << textureSize.x << ", " << textureSize.y << "]" << std::endl;
+    sprite.setTextureRect(sf::IntRect(0, 0, textureSize.x, textureSize.y));
     sprite.setTexture(texture);
+    std::cout << "WxH2: [" << cellSize.x << ", " << cellSize.y << "]" << std::endl;
 }
 
 
@@ -63,16 +60,16 @@ void Sprite::update(float dt) {
         }
 
         const Frame& frame = animations[currentAnimation][currentFrame];
-        sf::IntRect rect(frame.col * 32, frame.row * 32, 32, 32);
-        if (frame.doubleWidth)
-            rect.width *= 2;
-        if (frame.doubleHeight)
-            rect.height *= 2;
+        std::cout << "Row x Cell: [" << frame.col << ", " << frame.row << "]" << std::endl;
+
+        sf::IntRect rect(frame.col * cellSize.x, frame.row * cellSize.y, cellSize.x, cellSize.y);
         sprite.setTextureRect(rect);
         sprite.setScale(frame.flipped ? -1.0f : 1.0f, 1.0f);
+        if (!prepared) prepared = true;
     }
 }
 
 void Sprite::draw(sf::RenderWindow& window) {
+    if (!prepared) return;
     window.draw(sprite);
 }

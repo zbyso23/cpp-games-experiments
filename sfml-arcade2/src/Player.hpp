@@ -4,7 +4,7 @@
 
 class Player : public Sprite {
 public:
-    Player();
+    Player(const std::string& textureFile, const sf::Vector2i& sheetSize, const std::string& executablePath);
 
 private:
     std::vector<Frame> createIdleFrames(int offset);

@@ -26,6 +26,10 @@ public:
     void setPosition(float x, float y);
     void update(float dt);
     void draw(sf::RenderWindow& window);
+protected:
+    sf::Vector2u textureSize;
+    sf::Vector2i cellSize;
+    bool prepared = false;
 
 private:
     sf::Texture texture;

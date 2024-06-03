@@ -1,8 +1,7 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include "Player.hpp"
-#include "Enemy.hpp"
-#include "Coin.hpp"
+#include "FpsCounter.hpp"
 #include <iostream>
 
 int main(int argc, char* argv[])
@@ -17,14 +16,8 @@ int main(int argc, char* argv[])
     sf::Clock clock;
 
     Player player("images/sprites-test-combined.png", sf::Vector2i(92, 104), argv[0]);
-    // Player player("images/sprites-test-double.png", sf::Vector2i(184, 104), argv[0]);
-    // Enemy enemy("enemy_sprites.png", sf::Vector2i(40, 40), argv[0]);
-    // Coin coin("coin_sprites.png", sf::Vector2i(40, 40), argv[0]);
-
+    FpsCounter fpsCounter;
     player.setPosition(100, 100);
-    // enemy.setPosition(300, 100);
-    // coin.setPosition(500, 100);
-
     while (window.isOpen())
     {
         sf::Event event;
@@ -35,21 +28,15 @@ int main(int argc, char* argv[])
         }
 
         float dt = clock.restart().asSeconds();
-        // std::cout << "--- player.update()" << std::endl;
+        // std::cout << "Dt: [" << dt << "]" << std::endl;
         player.update(dt);
-        // enemy.update();
-        // coin.update();
 
-        // std::cout << "--- window.clear()" << std::endl;
         window.clear();
         
-        // std::cout << "--- player.draw(window)" << std::endl;
-
         player.draw(window);
-        // enemy.draw(window);
-        // coin.draw(window);
-
         window.display();
+        fpsCounter.addFrame();
+
     }
 
     return 0;

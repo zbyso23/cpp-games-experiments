@@ -1,15 +1,15 @@
 #include "Player.hpp"
 
-Player::Player() {
-    loadTexture("images/sprites-test-double.png");
+Player::Player(const std::string& textureFile, const sf::Vector2i& sheetSize, const std::string& executablePath) : 
+    Sprite(textureFile, sheetSize, executablePath) {
 
     // Create idle animation frames
     std::vector<Frame> idleFrames = createIdleFrames(0);
     addAnimation("idle", idleFrames);
 
     // Create walk animation frames
-    std::vector<Frame> walkFrames = createWalkFrames(3);
-    addAnimation("walk", walkFrames);
+    // std::vector<Frame> walkFrames = createWalkFrames(3);
+    // addAnimation("walk", walkFrames);
 
     // Set initial animation
     setAnimation("idle", 0.6f, true, false);
@@ -23,8 +23,6 @@ std::vector<Frame> Player::createIdleFrames(int offset) {
         frame.row = 0;
         frame.col = i + offset;
         frame.flipped = false;
-        frame.doubleWidth = false;
-        frame.doubleHeight = false;
         frames.push_back(frame);
     }
     return frames;
@@ -38,8 +36,6 @@ std::vector<Frame> Player::createWalkFrames(int offset) {
         frame.row = 1;
         frame.col = i + offset;
         frame.flipped = false;
-        frame.doubleWidth = true;
-        frame.doubleHeight = false;
         frames.push_back(frame);
     }
     return frames;

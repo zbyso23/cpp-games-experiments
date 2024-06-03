@@ -28,3 +28,6 @@ clean:
 		rm -rf $(BUILDDIR) $(TARGETDIR)
 
 .PHONY: all clean
+
+# Dependencies
+$(wildcard $(BUILDDIR)/*.o): $(wildcard $(SRCDIR)/*.hpp)
